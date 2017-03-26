@@ -11,6 +11,10 @@ def say():
 	text = flask.request.values.get('text')
 
 	# TODO: Make language configurable
+        # TODO: Then this replace should only happen for German
+        # replace a dot in numeric expressions with a comma
+        text = re.sub('(\d+)\.(\d+)', '\\1,\\2', text)
+
 	tmpfile = '/tmp/out.wav'
 	subprocess.call(['pico2wave', '-w', tmpfile, '-l', 'de-DE', text])
 	subprocess.call(['aplay', tmpfile])
