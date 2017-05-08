@@ -9,33 +9,37 @@ stored_volume = None
 @app.route('/say', methods=['GET', 'POST'])
 def say():
 	text = flask.request.values.get('text')
+	gain = flask.request.values.get('gain', "1.0")
 
 	# TODO: Make language configurable
-        # TODO: Then this replace should only happen for German
-        # replace a dot in numeric expressions with a comma
-        text = re.sub('(\d+)\.(\d+)', '\\1,\\2', text)
+	# TODO: Then this replace should only happen for German
+	# replace a dot in numeric expressions with a comma
+	text = re.sub('(\d+)\.(\d+)', '\\1,\\2', text)
 
 	tmpfile = '/tmp/out.wav'
+	tmpfile_volume = '/tmp/out_voladjusted.wav'
 	subprocess.call(['pico2wave', '-w', tmpfile, '-l', 'de-DE', text])
-	subprocess.call(['aplay', tmpfile])
+	# Increase volume with ffmpeg: ffmpeg -i input.wav -af "volume=1.5" output.wav
+	subprocess.call(['sox', '-v', gain, tmpfile, tmpfile_volume])
+	subprocess.call(['aplay', tmpfile_volume])
 	
-	return flask.jsonify({"status", "OK"})
+	return flask.jsonify(status="OK")
 
 @app.route('/volume_up/<int:level>')
 def volume_up(level):
 	subprocess.call(['amixer', 'sset', 'PCM', str(level) + '+'])
-	return flask.jsonify({"status": "OK"})
+	return flask.jsonify(status="OK")
 
 @app.route('/volume_down/<int:level>')
 def volume_down(level):
 	subprocess.call(['amixer', 'sset', 'PCM', str(level) + '-'])
-	return flask.jsonify({"status": "OK"})
+	return flask.jsonify(status="OK")
 
 @app.route('/volume_set')
 def volume_set():
 	level = flask.request.args.get('level')
 	subprocess.call(['amixer', 'sset', 'PCM', level + '%'])
-	return flask.jsonify({"status": "OK"})
+	return flask.jsonify(status="OK")
 
 @app.route('/volume_store')
 def volume_store():
@@ -47,7 +51,7 @@ def volume_store():
 		if m is not None:
 			stored_volume = m.group(1)
 	
-	return flask.jsonify({"status": "OK"})
+	return flask.jsonify(status="OK")
 
 @app.route('/volume_restore')
 def volume_restore():
@@ -56,4 +60,4 @@ def volume_restore():
 	if stored_volume is not None:
 		subprocess.call(['amixer', 'sset', 'PCM', str(stored_volume) + '%'])
 	
-	return flask.jsonify({"status": "OK"})
+	return flask.jsonify(status="OK")
